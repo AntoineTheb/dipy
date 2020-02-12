@@ -11,13 +11,11 @@ With Pytest, Run this benchmark with:
 
 """
 import numpy as np
-import nibabel as nib
 
 from dipy.data import get_fnames
-
-import dipy.tracking.streamline as streamline_utils
+from dipy.io.streamline import load_tractogram
+from dipy.tracking.streamline import Streamlines, set_number_of_points
 from dipy.segment.metric import Metric
-from dipy.segment.quickbundles import QuickBundles as QB_Old
 from dipy.segment.clustering import QuickBundles as QB_New
 from numpy.testing import assert_equal
 
@@ -40,34 +38,38 @@ def bench_quickbundles():
     repeat = 10
     nb_points = 12
 
-    streams, hdr = nib.trackvis.read(get_fnames('fornix'))
-    fornix = [s[0].astype(dtype) for s in streams]
-    fornix = streamline_utils.set_number_of_points(fornix, nb_points)
+    fname = get_fnames('fornix')
+
+    fornix = load_tractogram(fname, 'same',
+                             bbox_valid_check=False).streamlines
+
+    fornix_streamlines = Streamlines(fornix)
+    fornix_streamlines = set_number_of_points(fornix_streamlines, nb_points)
 
     # Create eight copies of the fornix to be clustered (one in each octant).
     streamlines = []
-    streamlines += [s + np.array([100, 100, 100], dtype) for s in fornix]
-    streamlines += [s + np.array([100, -100, 100], dtype) for s in fornix]
-    streamlines += [s + np.array([100, 100, -100], dtype) for s in fornix]
-    streamlines += [s + np.array([100, -100, -100], dtype) for s in fornix]
-    streamlines += [s + np.array([-100, 100, 100], dtype) for s in fornix]
-    streamlines += [s + np.array([-100, -100, 100], dtype) for s in fornix]
-    streamlines += [s + np.array([-100, 100, -100], dtype) for s in fornix]
-    streamlines += [s + np.array([-100, -100, -100], dtype) for s in fornix]
+    streamlines += [s + np.array([100, 100, 100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([100, -100, 100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([100, 100, -100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([100, -100, -100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([-100, 100, 100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([-100, -100, 100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([-100, 100, -100], dtype)
+                    for s in fornix_streamlines]
+    streamlines += [s + np.array([-100, -100, -100], dtype)
+                    for s in fornix_streamlines]
 
     # The expected number of clusters of the fornix using threshold=10 is 4.
     threshold = 10.
     expected_nb_clusters = 4 * 8
 
     print("Timing QuickBundles 1.0 vs. 2.0")
-
-    qb = QB_Old(streamlines, threshold, pts=None)
-    qb1_time = measure("QB_Old(streamlines, threshold, nb_points)", repeat)
-    print("QuickBundles time: {0:.4}sec".format(qb1_time))
-    assert_equal(qb.total_clusters, expected_nb_clusters)
-    sizes1 = [qb.partitions()[i]['N'] for i in range(qb.total_clusters)]
-    indices1 = [qb.partitions()[i]['indices']
-                for i in range(qb.total_clusters)]
 
     qb2 = QB_New(threshold)
     qb2_time = measure("clusters = qb2.cluster(streamlines)", repeat)

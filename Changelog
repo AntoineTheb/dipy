@@ -10,11 +10,11 @@ Dipy is a diffusion MR imaging library written in Python
 
 'Close gh-' statements refer to GitHub issues that are available at::
 
-  http://github.com/nipy/dipy/issues
+  http://github.com/dipy/dipy/issues
 
 The full VCS changelog is available here:
 
-  http://github.com/nipy/dipy/commits/master
+  http://github.com/dipy/dipy/commits/master
 
 Releases
 ~~~~~~~~
@@ -23,6 +23,25 @@ Dipy
 ++++
 
 The code found in Dipy was created by the people found in the AUTHOR file.
+
+* 1.0.0 (Monday, 5 August 2019)
+
+- Critical :doc:`API changes <api_changes>`
+- Large refactoring of tracking API.
+- New denoising algorithm: MP-PCA.
+- New Gibbs ringing removal.
+- New interpolation module: ``dipy.core.interpolation``.
+- New reconstruction models: MTMS-CSD, Mean Signal DKI.
+- Increased coordinate systems consistency.
+- New object to manage safely tractography data: StatefulTractogram
+- New command line interface for downloading datasets: FetchFlow
+- Horizon updated, medical visualization interface powered by QuickBundlesX.
+- Removed all deprecated functions and parameters.
+- Removed compatibility with Python 2.7.
+- Updated minimum dependencies version (Numpy, Scipy).
+- All tutorials updated to API changes and 3 new added.
+- Large documentation update.
+- Closed 289 issues and merged 98 pull requests.
 
 * 0.16.0 (Sunday, 10 March 2019)
 
@@ -47,7 +66,7 @@ The code found in Dipy was created by the people found in the AUTHOR file.
 - Many tutorials added or updated (5 New).
 - Large documentation update.
 - Moved visualization module to a new library: FURY.
-- Closed 287 issues and merged 93 pull requests.   
+- Closed 287 issues and merged 93 pull requests.
 
 * 0.14 (Tuesday, 1 May 2018)
 

@@ -8,7 +8,6 @@ from numpy.testing import (assert_array_equal,
                            assert_equal,
                            assert_raises)
 from dipy.core import geometry as geometry
-from dipy.data import get_data
 from dipy.viz import regtools as rt
 from dipy.align import floating
 from dipy.align import vector_fields as vf
@@ -322,7 +321,7 @@ def test_mi_gradient():
         # Compute the gradient with the implementation under test
         actual = mi_metric.gradient(theta)
 
-        # Compute the gradient using finite-diferences
+        # Compute the gradient using finite-differences
         n = transform.get_number_of_parameters()
         expected = np.empty(n, dtype=np.float64)
 

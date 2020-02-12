@@ -1,4 +1,3 @@
-from __future__ import division, print_function, absolute_import
 
 import logging
 import numpy as np
@@ -20,7 +19,7 @@ from dipy.workflows.workflow import Workflow
 from dipy.viz.regtools import simple_plot
 from dipy.stats.analysis import bundle_analysis
 pd, have_pd, _ = optional_package("pandas")
-smf, have_smf, _ = optional_package("statsmodels.formula.api")
+smf, have_smf, _ = optional_package("statsmodels")
 tables, have_tables, _ = optional_package("tables")
 
 if have_pd:
@@ -39,7 +38,7 @@ class SNRinCCFlow(Workflow):
     def get_short_name(cls):
         return 'snrincc'
 
-    def run(self, data_files, bvals_files, bvecs_files, mask_files,
+    def run(self, data_files, bvals_files, bvecs_files, mask_file,
             bbox_threshold=[0.6, 1, 0, 0.1, 0, 0.1], out_dir='',
             out_file='product.json', out_mask_cc='cc.nii.gz',
             out_mask_noise='mask_noise.nii.gz'):
@@ -54,8 +53,8 @@ class SNRinCCFlow(Workflow):
             Path of bvals.
         bvecs_files : string
             Path of bvecs.
-        mask_files : string
-            Path of brain mask
+        mask_file : string
+            Path of a brain mask file.
         bbox_threshold : variable float, optional
             Threshold for bounding box, values separated with commas for ex.
             [0.6,1,0,0.1,0,0.1]. (default (0.6, 1, 0, 0.1, 0, 0.1))
@@ -78,11 +77,7 @@ class SNRinCCFlow(Workflow):
             bvals, bvecs = read_bvals_bvecs(bvals_path, bvecs_path)
             gtab = gradient_table(bvals=bvals, bvecs=bvecs)
 
-            logging.info('Computing brain mask...')
-            _, calc_mask = median_otsu(data)
-
             mask, affine = load_nifti(mask_path)
-            mask = np.array(calc_mask == mask.astype(bool)).astype(int)
 
             logging.info('Computing tensors...')
             tenmodel = TensorModel(gtab)

@@ -1,12 +1,11 @@
-from __future__ import division, print_function, absolute_import
 
 import logging
 from dipy.workflows.workflow import Workflow
 from dipy.io.image import save_nifti, load_nifti
+import nibabel as nib
 import numpy as np
 from time import time
 from dipy.segment.mask import median_otsu
-from dipy.io.streamline import load_trk, save_trk
 from dipy.segment.bundles import RecoBundles
 
 
@@ -42,10 +41,10 @@ class MedianOtsuFlow(Workflow):
             reduce their size in memory and speed up some of the analysis.
             (default False)
         vol_idx : variable int, optional
-            1D array representing indices of ``axis=3`` of a 4D `input_volume`
-            'None' (the default) corresponds to ``(0,)`` (assumes first volume
-            in 4D array). From cmd line use 3 4 5 6. From script use
-            [3, 4, 5, 6].
+            1D array representing indices of ``axis=-1`` of a 4D
+            `input_volume`. From the command line use something like
+            `3 4 5 6`. From script use something like `[3, 4, 5, 6]`. This
+            input is required for 4D volumes.
         dilate : int, optional
             number of iterations for binary dilation (default 'None')
         out_dir : string, optional
@@ -58,17 +57,21 @@ class MedianOtsuFlow(Workflow):
         io_it = self.get_io_iterator()
         if vol_idx is not None:
             vol_idx = map(int, vol_idx)
+
         for fpath, mask_out_path, masked_out_path in io_it:
             logging.info('Applying median_otsu segmentation on {0}'.
                          format(fpath))
 
             data, affine, img = load_nifti(fpath, return_img=True)
 
-            masked_volume, mask_volume = median_otsu(data, median_radius,
-                                                     numpass, autocrop,
-                                                     vol_idx, dilate)
+            masked_volume, mask_volume = median_otsu(
+                data,
+                vol_idx=vol_idx,
+                median_radius=median_radius,
+                numpass=numpass,
+                autocrop=autocrop, dilate=dilate)
 
-            save_nifti(mask_out_path, mask_volume.astype(np.float32), affine)
+            save_nifti(mask_out_path, mask_volume.astype(np.float64), affine)
 
             logging.info('Mask saved as {0}'.format(mask_out_path))
 
@@ -202,7 +205,8 @@ class RecoBundlesFlow(Workflow):
 
         t = time()
         logging.info(streamline_files)
-        streamlines, header = load_trk(streamline_files)
+        input_obj = nib.streamlines.load(streamline_files)
+        streamlines = input_obj.streamlines
 
         logging.info(' Loading time %0.3f sec' % (time() - t,))
 
@@ -212,7 +216,7 @@ class RecoBundlesFlow(Workflow):
         for _, mb, out_rec, out_labels in io_it:
             t = time()
             logging.info(mb)
-            model_bundle, _ = load_trk(mb)
+            model_bundle = nib.streamlines.load(mb).streamlines
             logging.info(' Loading time %0.3f sec' % (time() - t,))
             logging.info("model file = ")
             logging.info(mb)
@@ -261,14 +265,16 @@ class RecoBundlesFlow(Workflow):
 
             if len(labels) > 0:
                 ba, bmd = rb.evaluate_results(
-                             model_bundle, recognized_bundle,
-                             slr_select)
+                    model_bundle, recognized_bundle,
+                    slr_select)
 
                 logging.info("Bundle adjacency Metric {0}".format(ba))
                 logging.info("Bundle Min Distance Metric {0}".format(bmd))
 
-            save_trk(out_rec, recognized_bundle, np.eye(4))
-
+            new_tractogram = nib.streamlines.Tractogram(recognized_bundle,
+                                                        affine_to_rasmm=np.eye(4))
+            nib.streamlines.save(new_tractogram, out_rec,
+                                 header=input_obj.header)
             logging.info('Saving output files ...')
             np.save(out_labels, np.array(labels))
             logging.info(out_rec)
@@ -310,9 +316,14 @@ class LabelsBundlesFlow(Workflow):
         for sf, lb, out_bundle in io_it:
 
             logging.info(sf)
-            streamlines, header = load_trk(sf)
+            tractogram_obj = nib.streamlines.load(sf)
+            streamlines = tractogram_obj.streamlines
+
             logging.info(lb)
             location = np.load(lb)
             logging.info('Saving output files ...')
-            save_trk(out_bundle, streamlines[location], np.eye(4))
+            new_tractogram = nib.streamlines.Tractogram(streamlines[location],
+                                                        affine_to_rasmm=np.eye(4))
+            nib.streamlines.save(new_tractogram, out_bundle,
+                                 header=tractogram_obj.header)
             logging.info(out_bundle)
